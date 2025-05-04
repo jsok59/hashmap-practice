@@ -1,145 +1,162 @@
 import { createLinkedList, createNode } from "./linkedlist.js";
 
-function HashMap(capacity, load_factor) {
-	const buckets = [];
-	let internalCapacity = capacity;
-
-	function reload() {
-		if (length() >= internalCapacity * load_factor) {
-			const arr = entries();
-			clear();
-			internalCapacity *= 2;
+const hashmap_proto = {
+	reload() {
+		if (this.length() >= this.internalCapacity * this.load_factor) {
+			const arr = this.entries();
+			this.clear();
+			this.internalCapacity *= 2;
 			for (const element of arr) {
-				set(element[0], element[1]);
+				this.set(element[0], element[1]);
 			}
 		}
-	}
+	},
 
-	function hash(key) {
+	hash(key) {
 		let hashCode = 0;
 
 		const primeNumber = 31;
 		for (let i = 0; i < key.length; i++) {
 			hashCode = primeNumber * hashCode + key.charCodeAt(i);
-			hashCode = hashCode % internalCapacity;
+			hashCode = hashCode % this.internalCapacity;
 		}
 
 		return hashCode;
-	}
+	},
 
-	function set(key, value) {
-		const hashCode = hash(key);
-		if (buckets[hashCode] === undefined) {
-			buckets[hashCode] = createLinkedList();
-			buckets[hashCode].append(key, value);
+	set(key, value) {
+		const hashCode = this.hash(key);
+		if (this.buckets[hashCode] === undefined) {
+			this.buckets[hashCode] = createLinkedList();
+			this.buckets[hashCode].append(key, value);
 		} else {
-			let nodeIndex = buckets[hashCode].findKey(key);
+			let nodeIndex = this.buckets[hashCode].findKey(key);
 			if (nodeIndex === null) {
-				buckets[hashCode].append(key, value);
+				this.buckets[hashCode].append(key, value);
 			} else {
-				buckets[hashCode].at(nodeIndex).value = value;
+				this.buckets[hashCode].at(nodeIndex).value = value;
 			}
 		}
-		reload();
-	}
+		this.reload();
+	},
 
-	function get(key) {
-		const hashCode = hash(key);
-		if (buckets[hashCode] === undefined) {
+	get(key) {
+		const hashCode = this.hash(key);
+		if (this.buckets[hashCode] === undefined) {
 			return null;
 		}
 
-		if (buckets[hashCode].findKey(key) === null) {
+		const nodeIndex = this.buckets[hashCode].findKey(key);
+
+		if (nodeIndex === null) {
 			return null;
 		}
 
-		let nodeIndex = buckets[hashCode].findKey(key);
-		return buckets[hashCode].at(nodeIndex).value;
-	}
+		return this.buckets[hashCode].at(nodeIndex).value;
+	},
 
-	function has(key) {
-		const hashCode = hash(key);
-		if (buckets[hashCode] === undefined) {
+	has(key) {
+		const hashCode = this.hash(key);
+		if (this.buckets[hashCode] === undefined) {
 			return false;
 		}
 
-		if (buckets[hashCode].findKey(key) !== null) {
+		if (this.buckets[hashCode].findKey(key) !== null) {
 			return true;
 		}
 
 		return false;
-	}
+	},
 
-	function remove(key) {
-		const hashCode = hash(key);
-		const nodeIndex = buckets[hashCode].findKey(key);
-		if (buckets[hashCode] === undefined || nodeIndex === null) {
+	remove(key) {
+		const hashCode = this.hash(key);
+		const nodeIndex = this.buckets[hashCode].findKey(key);
+		if (this.buckets[hashCode] === undefined || nodeIndex === null) {
 			return false;
 		}
 
-		buckets[hashCode].removeAt(nodeIndex);
+		this.buckets[hashCode].removeAt(nodeIndex);
 		return true;
-	}
+	},
 
-	function length() {
-		return buckets.reduce((prev, curr) => (curr === undefined ? prev + 0 : prev + curr.getSize()), 0);
-	}
+	length() {
+		return this.buckets.reduce((prev, curr) => (curr === undefined ? prev + 0 : prev + curr.getSize()), 0);
+	},
 
-	function clear() {
-		for (let i = 0; i < internalCapacity; i++) {
-			buckets[i] = undefined;
+	clear() {
+		for (let i = 0; i < this.internalCapacity; i++) {
+			this.buckets[i] = undefined;
 		}
-	}
+	},
 
-	function keys() {
+	keys() {
 		const arr = [];
-		for (let i = 0; i < internalCapacity; i++) {
-			if (buckets[i] === undefined) continue;
-			let iter = buckets[i].getHead();
+		for (let i = 0; i < this.internalCapacity; i++) {
+			if (this.buckets[i] === undefined) continue;
+			let iter = this.buckets[i].getHead();
 			while (iter != null) {
 				arr.push(iter.key);
 				iter = iter.nextNode;
 			}
 		}
 		return arr;
-	}
+	},
 
-	function values() {
+	values() {
 		const arr = [];
-		for (let i = 0; i < internalCapacity; i++) {
-			if (buckets[i] === undefined) continue;
-			let iter = buckets[i].getHead();
+		for (let i = 0; i < this.internalCapacity; i++) {
+			if (this.buckets[i] === undefined) continue;
+			let iter = this.buckets[i].getHead();
 			while (iter != null) {
 				arr.push(iter.value);
 				iter = iter.nextNode;
 			}
 		}
 		return arr;
-	}
+	},
 
-	function entries() {
+	entries() {
 		const arr = [];
-		for (let i = 0; i < internalCapacity; i++) {
-			if (buckets[i] === undefined) continue;
-			let iter = buckets[i].getHead();
+		for (let i = 0; i < this.internalCapacity; i++) {
+			if (this.buckets[i] === undefined) continue;
+			let iter = this.buckets[i].getHead();
 			while (iter != null) {
 				arr.push([iter.key, iter.value]);
 				iter = iter.nextNode;
 			}
 		}
 		return arr;
-	}
+	},
+};
 
-	return { set, buckets, get, has, remove, length, clear, keys, values, entries };
+function HashMap(capacity, load_factor) {
+	return Object.create(hashmap_proto, {
+		buckets: {
+			value: [],
+			writable: true,
+			enumerable: true,
+			configurable: true,
+		},
+
+		internalCapacity: {
+			value: capacity,
+			writable: true,
+			enumerable: true,
+			configurable: true,
+		},
+
+		load_factor: {
+			value: load_factor,
+			writable: true,
+			enumerable: true,
+			configurable: true,
+		},
+	});
 }
 
 const map = HashMap(4, 0.75);
-map.set("key1", "value1");
-map.set("key2", "value2");
-map.set("key3", "value3");
-map.set("key4", "value4");
-map.set("key5", "value5");
-map.set("key6", "value6");
-map.set("key7", "value7");
+for (let i = 0; i < 12; i++) {
+	map.set(`key${i}`, `value${i}`);
+}
 
 window.debug = { HashMap, map };
